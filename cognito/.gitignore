@@ -129,6 +129,7 @@ $RECYCLE.BIN/
 
 # Ignore the generated cloudformation template
 packaged.yaml
+template.two-pools.yaml
 
 # Ignore js as we'll be doing typescript
 *.js

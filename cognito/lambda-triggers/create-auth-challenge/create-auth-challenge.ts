@@ -3,9 +3,11 @@
 
 import { CognitoUserPoolTriggerHandler } from 'aws-lambda';
 import { randomDigits } from 'crypto-secure-random-digit';
-import { SES } from 'aws-sdk';
+import { SES, SNS } from 'aws-sdk';
 
-const ses = new SES();
+const region = 'eu-west-1'
+const ses = new SES({ region });
+const sns = new SNS({ apiVersion: '2010-03-31', region });
 
 export const handler: CognitoUserPoolTriggerHandler = async event => {
 
@@ -15,8 +17,14 @@ export const handler: CognitoUserPoolTriggerHandler = async event => {
         // This is a new auth session
         // Generate a new secret login code and mail it to the user
         secretLoginCode = randomDigits(6).join('');
-        await sendEmail(event.request.userAttributes.email, secretLoginCode);
-
+        const email = event.request.userAttributes.email
+        const phone = event.request.userAttributes.phone_number
+        if(email){
+            await sendEmail(email, secretLoginCode);
+        }
+        if(phone) {
+            await sendMessage(phone, secretLoginCode)
+        }
     } else {
 
         // There's an existing session. Don't generate new digits but
@@ -28,7 +36,7 @@ export const handler: CognitoUserPoolTriggerHandler = async event => {
     }
 
     // This is sent back to the client app
-    event.response.publicChallengeParameters = { email: event.request.userAttributes.email };
+    event.response.publicChallengeParameters = { email: event.request.userAttributes.email, phone: event.request.userAttributes.phone_number };
 
     // Add the secret login code to the private challenge parameters
     // so it can be verified by the "Verify Auth Challenge Response" trigger
@@ -64,4 +72,12 @@ async function sendEmail(emailAddress: string, secretLoginCode: string) {
         Source: process.env.SES_FROM_ADDRESS!
     };
     await ses.sendEmail(params).promise();
+}
+
+async function sendMessage(phone: string, secretLoginCode: string) {
+    const params = {
+        Message: `Your secret login code: ${secretLoginCode}`, /* required */
+        PhoneNumber: phone,
+    };
+    await sns.publish(params).promise();
 }

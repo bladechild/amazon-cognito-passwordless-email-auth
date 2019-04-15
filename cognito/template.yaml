@@ -4,21 +4,21 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Amazon Cognito User Pool with Passwordless E-Mail Auth configured
+  Amazon Cognito User Pool with Passwordless E-Mail or SMS Auth configured
 
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: amazon-cognito-passwordless-email-auth
     Description: >
-      An Amazon Cognito user pool, pre-configured with AWS Lambda triggers to implement passwordless e-mail auth
+      An Amazon Cognito user pool, pre-configured with AWS Lambda triggers to implement passwordless e-mail or SMS auth
     Author: AWS Samples
     SpdxLicenseId: MIT-0
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     Labels: ['cognito', 'passwordless', 'authentication', 'auth', 'sample']
-    HomepageUrl: https://github.com/aws-samples/amazon-cognito-passwordless-email-auth/tree/master/cognito
+    HomepageUrl: https://github.com/bladechild/amazon-cognito-passwordless-email-auth/tree/master/cognito
     SemanticVersion: 0.1.1
-    SourceCodeUrl: https://github.com/aws-samples/amazon-cognito-passwordless-email-auth/tree/master/cognito
+    SourceCodeUrl: https://github.com/bladechild/amazon-cognito-passwordless-email-auth/tree/master/cognito
 
 Globals:
   Function:
@@ -55,6 +55,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ses:SendEmail
+                - sns:Publish
               Resource: "*"
 
   VerifyAuthChallengeResponse:
@@ -83,7 +84,11 @@ Resources:
         - Name: email
           AttributeDataType: String
           Mutable: true
-          Required: true
+          Required: false
+        - Name: phone_number
+          AttributeDataType: String
+          Mutable: true
+          Required: false
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -91,8 +96,9 @@ Resources:
           RequireNumbers: false
           RequireSymbols: false
           RequireUppercase: false
-      UsernameAttributes:
+      AliasAttributes:
         - email
+        - phone_number
       MfaConfiguration: "OFF"
       LambdaConfig:
         CreateAuthChallenge: !GetAtt CreateAuthChallenge.Arn
